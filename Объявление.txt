@@ -1,0 +1,15 @@
+#include <iostream>
+using namespace std;
+
+int main()
+{
+	setlocale(0, "");
+	cout << "\t\t\t\t\tСолидная фирма арендует дырокол" <<endl;
+	cout << "\t\t\t\t\t\t0678288586" << endl;
+	cout << "\t\t\t\ |067 | 067| 067| 067| 067| 067| 067| 067| 067| 067|" << endl;
+	cout << "\t\t\t\ |828 | 828| 828| 828| 828| 828| 828| 828| 828| 828|" << endl;
+	cout << "\t\t\t\ |85  | 85 | 85 | 85 | 85 | 85 | 85 | 85 | 85 | 85 |" << endl;
+	cout << "\t\t\t\ |86  | 86 | 86 | 86 | 86 | 86 | 86 | 86 | 86 | 86 |" << endl;
+	system("pause");
+
+}
