@@ -12,7 +12,7 @@ int main(){
 	while (!exit){
 		system("cls");
 		lat_stat = (lat != 0) ? "ON " : "OFF"; cyr_stat = (cyr != 0) ? "ON " : "OFF"; num_stat = (num != 0) ? "ON " : "OFF"; sym_stat = (sym != 0) ? "ON " : "OFF";
-		cout << "1 - Фильтр латинницы: " << lat_stat << "\n2 - Фильтр кириллицы: " << cyr_stat << "\n3 - Фильтр цифр: " << num_stat << "\n4 - Фильтр пунктуации: " << sym_stat << "\n\nВыход: Esc\n\n" << buffer << endl;
+		cout << "1 - Фильтр латиницы: " << lat_stat << "\n2 - Фильтр кириллицы: " << cyr_stat << "\n3 - Фильтр цифр: " << num_stat << "\n4 - Фильтр пунктуации: " << sym_stat << "\n\nВыход: Esc\n\n" << buffer << endl;
 		switch (_getch()) {
 		case 49: (lat == 0) ? lat++ : lat--; break;
 		case 50: (cyr == 0) ? cyr++ : cyr--; break;
