@@ -1,0 +1,270 @@
+#include <iostream>
+#include <ctime>
+#include <windows.h>
+#include <conio.h>
+
+using namespace std;
+
+void Kernel();
+void Intro();
+void LinuxCow(const char* var, int parm);
+void Manual();
+
+int main()
+{
+	setlocale(0, "");
+	srand(time(0));
+	char exit = '1';
+
+	Intro();
+	Manual();
+	while (exit == '1')
+	{
+		system("cls");
+		Kernel();
+		cout << "\n\nНачать заново - 1; Завершить работу - 0\n";
+		cin >> exit;
+
+	}
+	return 0;
+}
+
+void Kernel()
+{
+	const char* c;
+	const int size = 4;
+	char pc[size], user[255];
+	bool alreadyThere, check = false; 
+	int bull = 0, cow = 0, tmp = 0;
+	for (int i = 0; i < size; ) 
+	{
+		alreadyThere = false;
+		int newRandomValue = rand()%10;
+		for (int j = 0; j < i; j++)
+		{
+			if (pc[j] == '0' + newRandomValue)
+			{
+				alreadyThere = true;
+				break;
+			}
+		}
+
+		if (!alreadyThere)
+		{
+			pc[i] = '0' + newRandomValue;
+			i++;
+		}
+	}
+	/*for (int i = 0; i < size; i++) //cheatmode
+	{
+		cout << pc[i];
+	}
+	cout << endl;
+	_getch();*/ 
+	while (!check) 
+	{
+		system("cls");
+		c =  "Введите четырехзначное число";
+		LinuxCow(c, 1);
+		cout << "Для того чтобы сдаться введите 0" << endl;
+		cin >> user;
+		if ((strlen(user) == 1) && (user[0] == '0'))
+		{
+			c = "Вы Проиграли!"; 
+			system("cls");
+			LinuxCow(c, 1);
+			cout << "Количество попыток : " << tmp << endl;
+			check = true;
+		}
+		tmp++;
+		if (strlen(user) != 4) continue;
+		for (int i = 0; i < size; i++)  
+		{
+			for (int j = 0; j < size; j++)
+			{
+				if (pc[i] == user[j] && j == i) 
+				{
+					bull++;
+				}
+				else if (pc[i] == user[j] && j != i) 
+				{
+					cow++; 
+				}
+			}
+		}
+		if (bull == 4) 
+		{
+			system("cls");
+			c = "Ура! Вы угадали! Поздравляю с победой!";
+			LinuxCow(c, 2);
+			cout << "\nКоличество попыток : " << tmp << endl;
+			check = true;
+		}
+		else 
+		{
+			c = "Не угадали!";
+			system("cls");
+			LinuxCow(c, 1);
+			cout << "Быков: " << bull << "\nКоров: " << cow << endl; 
+			bull = cow = 0; 
+			system("pause");
+		}
+	}
+
+}
+
+void Intro()
+{
+	int height = 10, width = 100;
+	for (int i = 0; i < width; i++)
+	{
+		cout << "#"; Sleep(10);
+	}
+	cout << endl;
+	for (int i = 0; i < height / 2; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (j == 0 || j == width - 1)
+				cout << "#";
+			else cout << " ";
+		}
+		cout << endl;
+	}
+	cout << "#\t\t\t\t\t";
+	char game_name[] = "   БЫКИ И КОРОВЫ";
+	int i = 0;
+	while (game_name[i] != '\0')
+	{
+		cout << game_name[i];
+		Sleep(50);
+		i++;
+	}
+	cout << "\t\t\t\t\t   #";
+	cout << endl;
+	for (int i = 0; i < height / 2; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (j == 0 || j == width - 1)
+				cout << "#";
+			else cout << " ";
+		}
+		cout << endl;
+	}
+	for (int i = 0; i < width; i++)
+	{
+		cout << "#"; Sleep(10);
+	}
+	cout << endl;
+	cout << endl;
+	cout << endl;
+	cout << "  ^__^                ^__^                ^___^                ^__^                ^__^ " << endl;
+	cout << "  (оо)\\_______        (оо)\\_______        (T T)\\_______        (оо)\\_______        (оо)\\_______      " << endl;
+	cout << "  (__)\\       )\\/\\    (__)\\       )\\/\\    (___)\\       )\\/\\    (__)\\       )\\/\\    (__)\\       )\\/\\" << endl;
+	cout << "     ||----w |           ||----w |            ||----- |            ||----w |           ||----w |" << endl;
+	cout << "     ||     ||           ||     ||            ||     ||            ||     ||           ||     ||" << endl;
+	cout << endl;
+	cout << "\n\n\n\t\t\t       Чтобы продолжить нажмите любую клавишу" << endl;
+	_getch();
+}
+
+void LinuxCow(const char* var, int parm)
+{
+	int count = strlen(var);
+	for (int i = 0; i < count + 2; i++)
+	{
+		if (i == 0 || i == count + 1)
+			cout << "    ";
+		else
+			cout << "_";
+	}
+	cout << endl;
+	for (int i = 0; i < count + 2; i++)
+	{
+		if (i == 0)
+			cout << "  < ";
+		else if (i == count + 1)
+			cout << " >";
+		else
+			cout << var[i - 1];
+	}
+	cout << endl;
+	for (int i = 0; i < count + 2; i++)
+	{
+		if (i == 0 || i == count + 1)
+			cout << "    ";
+		else
+			cout << "-";
+	}
+	if (parm == 1)
+	{
+		cout << endl;
+		cout << "              \\    ^__^" << endl;
+		cout << "               \\   (oo)\\_______" << endl;
+		cout << "                   (__)\\       )\\/\\ " << endl;
+		cout << "  W     W              ||----w |         W     W" << endl;
+		cout << " \\|/   \\|/             ||     ||        \\|/   \\|/" << endl;
+		for (int i = 0; i < 50; i++)
+			cout << "-";
+		cout << endl;
+	}
+	else if (parm == 2)
+	{
+		cout << endl;
+		cout << "              \\    ^__^" << endl;
+		cout << "               \\   (^^)\\_______" << endl;
+		cout << "                   (__)\\       )\\/\\ " << endl;
+		cout << "  W     W              ||----w |         W     W" << endl;
+		cout << " \\|/   \\|/             ||     ||        \\|/   \\|/" << endl;
+		for (int i = 0; i < 50; i++)
+			cout << "-";
+		cout << endl;
+	}
+}
+
+void Manual()
+{
+	system("cls");
+	const char* c = "Привет!";
+	LinuxCow(c, 1);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+	system("cls");
+	c = "Я коровка Матрешка!";
+	LinuxCow(c, 2);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+	system("cls");
+	c = "Я расскажу тебе правила игры!";
+	LinuxCow(c, 1);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+	system("cls");
+	c = "Я загадала четырехзначное число, попробуй его угадать!";
+	LinuxCow(c, 1);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+	system("cls");
+	c = "Я буду давать тебе подсказки, называя количество быков и коровок";
+	LinuxCow(c, 2);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+	system("cls");
+	c = "Быки - это правильные числа на правильных местах в числе";
+	LinuxCow(c, 1);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+	system("cls");
+	c = "Коровки - это правильные цифры на неправильных местах";
+	LinuxCow(c, 1);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+	system("cls");
+	c = "Собери четырех быков и победа твоя!";
+	LinuxCow(c, 2);
+	cout << "Для продолжения нажмите любую клавишу" << endl;
+	_getch();
+}
+
+
