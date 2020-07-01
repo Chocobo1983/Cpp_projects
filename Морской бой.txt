@@ -1,0 +1,1928 @@
+#include <iostream>
+#include <string>
+#include <iomanip>
+#include <windows.h>
+#include <conio.h>
+#include <ctime>
+
+using namespace std;
+
+void SetColor(int text, int background); //цвет текста и фона
+enum ConsoleColor; // для функции выше
+
+class Cell
+{
+public:
+	enum CellState { EMPTY, LIVE, SIGN, DEAD };
+	Cell() { this->state = EMPTY; }
+	CellState GetState() { return state; }
+	void SetState(CellState state) { this->state = state; }
+	void ShowState()
+	{ //string status = (state == EMPTY) ? "  " : (state == LIVE) ? "# " : (state == SIGN) ? "* " : "x "; 
+		if (state == EMPTY) //пустая клетка
+		{
+			SetColor(3, 3);
+			cout << "  ";
+			SetColor(0, 7);
+		}
+		else if (state == LIVE) // является частью корабля или кораблем, т.н. "живая" клетка
+		{
+			SetColor(0, 6);
+			cout << "# ";
+			SetColor(0, 7);
+		}
+		else if (state == SIGN) // отмеченная клетка
+		{
+			SetColor(0, 3);
+			cout << "* ";
+			SetColor(0, 7);
+		}
+		else if (state == DEAD) // мертвая клетка
+		{
+			SetColor(0, 12);
+			cout << "x ";
+			SetColor(0, 7);
+		}
+	}
+
+private:
+	CellState state;
+};
+
+void setcur(int x, int y) //замена cls
+{
+	COORD coord;
+	coord.X = x;
+	coord.Y = y;
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+};
+
+void Intro(); //заставка
+string Name(); //получение имени пользователя и правила игры
+int SetShips(Cell arr[10][10]); //базовая функция для расстановки кораблей игрока и компьютера, как автоматическая так и ручная и выбор сложности игры
+void PCSetShips(Cell arr[10][10]); //автоматическая расстановка кораблей компьютера
+void AutoSetShips1(Cell player[10][10]); //автоматическая расстановка однопалубных кораблей игрока
+void AutoSetShips2(Cell arr[10][10]); //автоматическая расстановка двухпалубных кораблей игрока
+void AutoSetShips3(Cell arr[10][10]); //автоматическая расстановка трехпалубных кораблей игрока
+void AutoSetShips4(Cell arr[10][10]); //автоматическая расстановка четырехпалубных кораблей игрока
+void CloverField(Cell arr1[10][10], Cell arr2[10][10]); //служебная функция очистки игрового поля после расстановки, а также сокрытие кораблей компьютера от игрока
+void ManualSetShips(Cell arr[10][10]); //базовая функция для ручной расстановки кораблей игрока
+void ManualSetShips1(Cell arr[10][10]); //ручная расстановка однопалубных кораблей игрока
+void ManualSetShips2(Cell arr[10][10]); //ручная расстановка двухпалубных кораблей игрока
+void ManualSetShips3(Cell arr[10][10]); //ручная расстановка трепалубных кораблей игрока
+void ManualSetShips4(Cell arr[10][10]); //ручная расстановка четырехпалубных кораблей игрока
+void UserWar(Cell player[10][10], Cell pc[10][10], int& pccount); //ходы игрока
+void PCWar(Cell player[10][10], Cell pc[10][10], int& usercount, int& ch); // ходы компьютера
+
+
+
+
+int main()
+{
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	setlocale(LC_ALL, "rus");
+	system("title Морской Бой");
+	srand(time(NULL));
+	system("color 70");
+	system("mode con cols=100 lines=35");
+	char exit = '1';
+	while (exit == '1')
+	{
+		Intro();
+		string player_name;
+		Cell player[10][10];
+		Cell pc[10][10];
+		player_name = Name();
+		int ch = SetShips(player);
+		PCSetShips(pc);
+		CloverField(player, pc);
+		int pccount = 20, usercount = 20;
+		while (true)
+		{
+			UserWar(player, pc, pccount);
+			if (pccount == 0)
+			{
+				system("cls");
+				cout << player_name << ", поздравляю с победой!" << endl;
+				system("pause");
+				break;
+			}
+			PCWar(player, pc, usercount, ch);
+			if (usercount == 0)
+			{
+				cout << player_name << ", вы проиграли!" << endl;
+				system("pause");
+				break;
+			}
+		}
+		cout << "\nНачать заново - 1; Завершить работу программу - 0\n";
+		cin >> exit;
+	}
+	return 0;
+}
+
+
+void Intro()
+{
+	int height = 10, width = 100;
+	for (int i = 0; i < width; i++) { cout << "#"; Sleep(10); }
+	cout << endl;
+	for (int i = 0; i < height / 2; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (j == 0 || j == width - 1)
+				cout << "#";
+			else cout << " ";
+		}
+		cout << endl;
+	}
+	cout << "#\t\t\t\t\t";
+	char game_name[] = "\tМорской бой";
+	int i = 0;
+	while (game_name[i] != '\0')
+	{
+		cout << game_name[i];
+		Sleep(50);
+		i++;
+	}
+	cout << "\t\t\t\t\t   #";
+	cout << endl;
+	for (int i = 0; i < height / 2; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (j == 0 || j == width - 1)
+				cout << "#";
+			else cout << " ";
+		}
+		cout << endl;
+	}
+	for (int i = 0; i < width; i++) { cout << "#"; Sleep(10); }
+	cout << "\n\n\n";
+	char head1[] = "Экзаменационная работа\nстудента группы ВБУ-911\nНиколая Гуреева\nКА \"ШАГ\"\nКривой Рог\n2020\n\n\nДля продолжения нажмите любую клавишу";
+	i = 0;
+	while (head1[i] != '\0')
+	{
+		cout << head1[i];
+		Sleep(25);
+		i++;
+	}
+	_getch();
+	system("cls");
+}
+string Name()
+{
+	string name;
+	cout << "Введите ваше имя\n>";
+	getline(cin, name);
+	bool flag = false;
+	while (!flag)
+	{
+		system("cls");
+		cout << "\t\t\t" << name << ", добро пожаловать в игру \"Морской Бой\"\n";
+		int ch;
+		cout << "\n1 - Начать новую игру\n2 - Правила игры\n>";
+		cin >> ch;
+		if (ch < 1 || ch>2) continue;
+		if (ch == 1) flag = true;
+		if (ch == 2)
+		{
+			system("cls");
+			cout << "\t\t\t\t\t\tПравила Игры\n\n";
+			cout << "1. Корабли не должны соприкасаться, то есть расстояние между ними должно быть не менее одной клетки.\n\n";
+			cout << "2. Стрельбу ведут \"до первого промаха\", то есть если игрок попал в корабль противника, он производит\nследующий выстрел, и только после его промаха ход переходит к компьютеру.\n\n";
+			cout << "3. На первом игровом поле игрок размещает корабли и на нем показаны результаты выстрелов компьютера.\nНа втором поле отражаются результаты собственных выстрелов по компьютеру.\nПромах обозначается **, а попадание — xx.\n\n";
+			cout << "4. Победитель тот, кто первым уничтожит все корабли противника.\n\n\n";
+			cout << "Для продолжения нажмите любую клавишу\n>";
+			_getch();
+			continue;
+		}
+	}
+	return name;
+}
+
+int SetShips(Cell arr[10][10])
+{
+label:
+	system("cls");
+	cout << "Выберите способ расстановки ваших кораблей:\n1 - Автоматический\n2 - Ручной\n>";
+	int ch; cin >> ch;
+	if (ch < 1 || ch>2) goto label;
+	if (ch == 1)
+	{
+		AutoSetShips1(arr);
+		AutoSetShips1(arr);
+		AutoSetShips1(arr);
+		AutoSetShips1(arr);
+		AutoSetShips2(arr);
+		AutoSetShips2(arr);
+		AutoSetShips2(arr);
+		AutoSetShips3(arr);
+		AutoSetShips3(arr);
+		AutoSetShips4(arr);
+
+	}
+	else
+		ManualSetShips(arr);
+label2:
+	cout << "\nВыберите уровень сложности:\n1 - Легкий\n2 - Сложный\n>";
+	cin >> ch;
+	if (ch < 1 || ch>2) goto label2;
+	system("cls");
+	return ch;
+}
+
+void PCSetShips(Cell arr[10][10])
+{
+	AutoSetShips1(arr);
+	AutoSetShips1(arr);
+	AutoSetShips1(arr);
+	AutoSetShips1(arr);
+	AutoSetShips2(arr);
+	AutoSetShips2(arr);
+	AutoSetShips2(arr);
+	AutoSetShips3(arr);
+	AutoSetShips3(arr);
+	AutoSetShips4(arr);
+}
+
+
+void AutoSetShips1(Cell arr[10][10])
+{
+	while (true)
+	{
+		int x, y;
+		x = rand() % 10;
+		y = rand() % 10;
+		if (arr[x][y].GetState() != Cell::CellState::EMPTY) continue;
+		else
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				for (int j = 0; j < 10; j++)
+				{
+					if (i == x && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+					if ((i == x - 1 || i == x + 1) && (j == y - 1 || j == y + 1 || j == y)) arr[i][j].SetState(Cell::CellState::SIGN);
+					if (i == x && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+				}
+			}
+			break;
+		}
+	}
+
+}
+
+void AutoSetShips2(Cell arr[10][10])
+{
+	while (true)
+	{
+		int x, y;
+		int pos = rand() % 2;
+		if (pos == 0)
+		{
+			x = rand() % 10;
+			y = rand() % 9;
+		}
+		else
+		{
+			x = rand() % 9;
+			y = rand() % 10;
+		}
+		if (arr[x][y].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 0 && arr[x][y + 1].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 1 && arr[x + 1][y].GetState() != Cell::CellState::EMPTY) continue;
+		else
+		{
+			if (pos == 0)
+			{
+				for (int i = 0; i < 10; i++)
+				{
+					for (int j = 0; j < 10; j++)
+					{
+						if (i == x && (j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && (j == y - 1 || j == y + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 1 && (j == y - 1 || j == y || j == y + 1 || j == y + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 1 && (j == y - 1 || j == y || j == y + 1 || j == y + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+					}
+				}
+				break;
+			}
+			else
+			{
+				for (int i = 0; i < 10; i++)
+				{
+					for (int j = 0; j < 10; j++)
+					{
+						if ((i == x || i == x + 1) && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 1 && (j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 1 && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 2 && (j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+					}
+				}
+			}
+			break;
+		}
+	}
+}
+
+void AutoSetShips3(Cell arr[10][10])
+{
+	while (true)
+	{
+		int x, y;
+		int pos = rand() % 2;
+		if (pos == 0)
+		{
+			x = rand() % 10;
+			y = rand() % 8;
+		}
+		else
+		{
+			x = rand() % 8;
+			y = rand() % 10;
+		}
+		if (arr[x][y].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 0 && arr[x][y + 1].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 0 && arr[x][y + 2].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 1 && arr[x + 1][y].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 1 && arr[x + 2][y].GetState() != Cell::CellState::EMPTY) continue;
+		else
+		{
+			if (pos == 0)
+			{
+				for (int i = 0; i < 10; i++)
+				{
+					for (int j = 0; j < 10; j++)
+					{
+						if (i == x && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && j == y + 1) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && j == y + 2) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && (j == y - 1 || j == y + 3)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 1 && (j == y - 1 || j == y || j == y + 1 || j == y + 2 || j == y + 3)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 1 && (j == y - 1 || j == y || j == y + 1 || j == y + 2 || j == y + 3)) arr[i][j].SetState(Cell::CellState::SIGN);
+					}
+				}
+				break;
+			}
+			else
+			{
+				for (int i = 0; i < 10; i++)
+				{
+					for (int j = 0; j < 10; j++)
+					{
+						if (i == x && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x + 1 && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x + 2 && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 1 && (j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 1 && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 2 && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 3 && (j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+					}
+				}
+			}
+			break;
+		}
+	}
+}
+
+void AutoSetShips4(Cell arr[10][10])
+{
+	while (true)
+	{
+		int x, y;
+		int pos = rand() % 2;
+		if (pos == 0)
+		{
+			x = rand() % 10;
+			y = rand() % 7;
+		}
+		else
+		{
+			x = rand() % 7;
+			y = rand() % 10;
+		}
+		if (arr[x][y].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 0 && arr[x][y + 1].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 0 && arr[x][y + 2].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 0 && arr[x][y + 3].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 1 && arr[x + 1][y].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 1 && arr[x + 2][y].GetState() != Cell::CellState::EMPTY) continue;
+		if (pos == 1 && arr[x + 3][y].GetState() != Cell::CellState::EMPTY) continue;
+		else
+		{
+			if (pos == 0)
+			{
+				for (int i = 0; i < 10; i++)
+				{
+					for (int j = 0; j < 10; j++)
+					{
+						if (i == x && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && j == y + 1) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && j == y + 2) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && j == y + 3) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && (j == y - 1 || j == y + 4)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 1 && (j == y - 1 || j == y || j == y + 1 || j == y + 2 || j == y + 3 || j == y + 4)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 1 && (j == y - 1 || j == y || j == y + 1 || j == y + 2 || j == y + 3 || j == y + 4)) arr[i][j].SetState(Cell::CellState::SIGN);
+					}
+				}
+				break;
+			}
+			else
+			{
+				for (int i = 0; i < 10; i++)
+				{
+					for (int j = 0; j < 10; j++)
+					{
+						if (i == x && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x + 1 && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x + 2 && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x + 3 && j == y) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 1 && (j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 1 && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 2 && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 3 && (j == y - 1 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x + 4 && (j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+					}
+				}
+			}
+			break;
+		}
+	}
+}
+
+void CloverField(Cell arr1[10][10], Cell arr2[10][10])
+{
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			if (arr1[i][j].GetState() != Cell::CellState::LIVE)
+				arr1[i][j].SetState(Cell::CellState::EMPTY);
+		}
+	}
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			if (arr2[i][j].GetState() != Cell::CellState::LIVE)
+				arr2[i][j].SetState(Cell::CellState::EMPTY);
+		}
+	}
+}
+
+void ManualSetShips(Cell arr[10][10])
+{
+
+	ManualSetShips4(arr);
+	ManualSetShips3(arr);
+	ManualSetShips3(arr);
+	ManualSetShips2(arr);
+	ManualSetShips2(arr);
+	ManualSetShips2(arr);
+	ManualSetShips1(arr);
+	ManualSetShips1(arr);
+	ManualSetShips1(arr);
+	ManualSetShips1(arr);
+
+}
+
+void ManualSetShips1(Cell arr[10][10])
+{
+	int x, y;
+	x = 2, y = 2;
+	bool flag = true;
+	while (flag)
+	{
+		setcur(0, 0);
+		cout << "Выберите свободное место на поле и нажмите клавишу Enter.\nУправление осуществляется с помощью клавиш wasd.\n" << endl;
+		for (int i = 0; i < 13; i++)
+		{
+			for (int j = 0; j < 28; j++)
+			{
+				if (i == 0 && (j > 1 && j < 12)) cout << setiosflags(ios::left) << setw(2) << j - 1 << resetiosflags(ios::left);
+				else if (i == 0 && (j > 16 && j < 27)) cout << setiosflags(ios::left) << setw(2) << j - 16 << resetiosflags(ios::left);
+				else if (i == 1 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 1 && (j > 16 && j < 27)) cout << "--";
+				else if (j == 0 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 0 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 15 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 15 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 1 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if (j == 16 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if ((j == 12 || j == 27) && (i > 1 && i < 12)) cout << "| ";
+				else if (i == 12 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 12 && (j > 16 && j < 27)) cout << "--";
+				else if ((i > 1 && i < 12) && (j > 1 && j < 12))
+
+				{
+					if (i == x && j == y) cout << "x ";
+					else arr[i - 2][j - 2].ShowState();
+				}
+				else if ((i > 1 && i < 12) && (j > 16 && j < 27)) cout << "  ";
+				else cout << "  ";
+
+			}
+			cout << endl;
+		}
+		switch (_getch())
+		{
+		case 119: if (x > 2) x--;
+			break;
+		case 87: if (x > 2) x--;
+			break;
+		case 214: if (x > 2) x--;
+			break;
+		case 246: if (x > 2) x--;
+			break;
+		case 115: if (x < 11) x++;
+			break;
+		case 83: if (x < 11) x++;
+			break;
+		case 219: if (x < 11) x++;
+			break;
+		case 251: if (x < 11) x++;
+			break;
+		case 97: if (y > 2) y--;
+			break;
+		case 65: if (y > 2) y--;
+			break;
+		case 212: if (y > 2) y--;
+			break;
+		case 244: if (y > 2) y--;
+			break;
+		case 100: if (y < 11) y++;
+			break;
+		case 68: if (y < 11) y++;
+			break;
+		case 194: if (y < 11) y++;
+			break;
+		case 226: if (y < 11) y++;
+			break;
+		case 13:
+			if (arr[x - 2][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+			else
+			{
+
+				for (int i = 0; i < 10; i++)
+				{
+					for (int j = 0; j < 10; j++)
+					{
+						if (i == x - 2 && j == y - 2) arr[i][j].SetState(Cell::CellState::LIVE);
+						if (i == x - 2 && (j == y - 1 || j == y - 3)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 3 && (j == y - 3 || j == y - 2 || j == y - 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						if (i == x - 1 && (j == y - 3 || j == y - 2 || j == y - 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+					}
+				}
+
+				flag = false;
+				break;
+			}
+
+		}
+	}
+	system("cls");
+}
+
+void ManualSetShips2(Cell arr[10][10])
+{
+	int x, y, x1, y1;
+	x = 2, y = 2;
+	int ch;
+
+label1:
+	system("cls");
+	cout << "Выберите положение двухпалубного корабля:\n1 - Горизонтальное\n2 - Вертикальное\n>";
+	cin >> ch; if (ch < 1 || ch>2) goto label1;
+	if (ch == 1) { x1 = 2; y1 = 3; }
+	else { x1 = 3; y1 = 2; }
+	system("cls");
+	bool flag = true;
+	while (flag)
+	{
+		setcur(0, 0);
+		cout << "Выберите свободное место на поле и нажмите клавишу Enter.\nУправление осуществляется с помощью клавиш wasd.\n" << endl;
+		for (int i = 0; i < 13; i++)
+		{
+			for (int j = 0; j < 28; j++)
+			{
+				if (i == 0 && (j > 1 && j < 12)) cout << setiosflags(ios::left) << setw(2) << j - 1 << resetiosflags(ios::left);
+				else if (i == 0 && (j > 16 && j < 27)) cout << setiosflags(ios::left) << setw(2) << j - 16 << resetiosflags(ios::left);
+				else if (i == 1 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 1 && (j > 16 && j < 27)) cout << "--";
+				else if (j == 0 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 0 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 15 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 15 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 1 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if (j == 16 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if ((j == 12 || j == 27) && (i > 1 && i < 12)) cout << "| ";
+				else if (i == 12 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 12 && (j > 16 && j < 27)) cout << "--";
+				else if ((i > 1 && i < 12) && (j > 1 && j < 12))
+				{
+					if (i == x && j == y) cout << "x ";
+					else if (i == x1 && j == y1) cout << "x ";
+					else arr[i - 2][j - 2].ShowState();
+				}
+				else if ((i > 1 && i < 12) && (j > 16 && j < 27)) cout << "  ";
+				else cout << "  ";
+
+			}
+			cout << endl;
+		}
+		if (ch == 1)
+		{
+			switch (_getch())
+			{
+			case 119: if (x > 2) x--&& x1--;
+				break;
+			case 87: if (x > 2) x--&& x1--;
+				break;
+			case 214: if (x > 2) x--&& x1--;
+				break;
+			case 246: if (x > 2) x--&& x1--;
+				break;
+			case 115: if (x < 11) x++&& x1++;
+				break;
+			case 83: if (x < 11) x++&& x1++;
+				break;
+			case 219: if (x < 11) x++&& x1++;
+				break;
+			case 251: if (x < 11) x++&& x1++;
+				break;
+			case 97: if (y > 2) y--&& y1--;
+				break;
+			case 65: if (y > 2) y--&& y1--;
+				break;
+			case 212: if (y > 2) y--&& y1--;
+				break;
+			case 244: if (y > 2) y--&& y1--;
+				break;
+			case 100: if (y < 10) y++&& y1++;
+				break;
+			case 68: if (y < 10) y++&& y1++;
+				break;
+			case 194: if (y < 10) y++&& y1++;
+				break;
+			case 226: if (y < 10) y++&& y1++;
+				break;
+			case 13:
+				if (arr[x - 2][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 2][y - 1].GetState() != Cell::CellState::EMPTY) continue;
+				else
+				{
+
+					for (int i = 0; i < 10; i++)
+					{
+						for (int j = 0; j < 10; j++)
+						{
+							if (i == x - 2 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && j == y - 1)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && (j == y || j == y - 3)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (i == x - 3 && (j == y - 3 || j == y - 2 || j == y - 1 || j == y)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (i == x - 1 && (j == y - 3 || j == y - 2 || j == y - 1 || j == y)) arr[i][j].SetState(Cell::CellState::SIGN);
+						}
+					}
+
+					flag = false;
+					break;
+				}
+
+			}
+		}
+		if (ch == 2)
+		{
+			switch (_getch())
+			{
+			case 119: if (x > 2) x--&& x1--;
+				break;
+			case 87: if (x > 2) x--&& x1--;
+				break;
+			case 214: if (x > 2) x--&& x1--;
+				break;
+			case 246: if (x > 2) x--&& x1--;
+				break;
+			case 115: if (x < 10) x++&& x1++;
+				break;
+			case 83: if (x < 10) x++&& x1++;
+				break;
+			case 219: if (x < 10) x++&& x1++;
+				break;
+			case 251: if (x < 10) x++&& x1++;
+				break;
+			case 97: if (y > 2) y--&& y1--;
+				break;
+			case 65: if (y > 2) y--&& y1--;
+				break;
+			case 212: if (y > 2) y--&& y1--;
+				break;
+			case 244: if (y > 2) y--&& y1--;
+				break;
+			case 100: if (y < 11) y++&& y1++;
+				break;
+			case 68: if (y < 11) y++&& y1++;
+				break;
+			case 194: if (y < 11) y++&& y1++;
+				break;
+			case 226: if (y < 11) y++&& y1++;
+				break;
+			case 13:
+				if (arr[x - 2][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 1][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				else
+				{
+
+					for (int i = 0; i < 10; i++)
+					{
+						for (int j = 0; j < 10; j++)
+						{
+							if (i == x - 2 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 1 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if ((i == x - 3 || i == x) && j == y - 2) arr[i][j].SetState(Cell::CellState::SIGN);
+							if ((i == x - 3 || i == x - 2 || i == x - 1 || i == x) && j == y - 3) arr[i][j].SetState(Cell::CellState::SIGN);
+							if ((i == x - 3 || i == x - 2 || i == x - 1 || i == x) && j == y - 1) arr[i][j].SetState(Cell::CellState::SIGN);
+						}
+					}
+
+					flag = false;
+					break;
+				}
+
+			}
+		}
+	}
+	system("cls");
+}
+
+void ManualSetShips3(Cell arr[10][10])
+{
+	int x, y, x1, y1, x2, y2;
+	x = 2, y = 2;
+	int ch;
+
+label1:
+	system("cls");
+	cout << "Выберите положение трехпалубного корабля:\n1 - Горизонтальное\n2 - Вертикальное\n>";
+	cin >> ch; if (ch < 1 || ch>2) goto label1;
+	if (ch == 1) { x1 = 2; y1 = 3; x2 = 2; y2 = 4; }
+	else { x1 = 3; y1 = 2; x2 = 4; y2 = 2; }
+	system("cls");
+	bool flag = true;
+	while (flag)
+	{
+		setcur(0, 0);
+		cout << "Выберите свободное место на поле и нажмите клавишу Enter.\nУправление осуществляется с помощью клавиш wasd.\n" << endl;
+		for (int i = 0; i < 13; i++)
+		{
+			for (int j = 0; j < 28; j++)
+			{
+				if (i == 0 && (j > 1 && j < 12)) cout << setiosflags(ios::left) << setw(2) << j - 1 << resetiosflags(ios::left);
+				else if (i == 0 && (j > 16 && j < 27)) cout << setiosflags(ios::left) << setw(2) << j - 16 << resetiosflags(ios::left);
+				else if (i == 1 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 1 && (j > 16 && j < 27)) cout << "--";
+				else if (j == 0 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 0 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 15 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 15 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 1 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if (j == 16 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if ((j == 12 || j == 27) && (i > 1 && i < 12)) cout << "| ";
+				else if (i == 12 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 12 && (j > 16 && j < 27)) cout << "--";
+				else if ((i > 1 && i < 12) && (j > 1 && j < 12))
+				{
+					if (i == x && j == y) cout << "x ";
+					else if (i == x1 && j == y1) cout << "x ";
+					else if (i == x2 && j == y2) cout << "x ";
+					else arr[i - 2][j - 2].ShowState();
+				}
+				else if ((i > 1 && i < 12) && (j > 16 && j < 27)) cout << "  ";
+				else cout << "  ";
+
+			}
+			cout << endl;
+		}
+		if (ch == 1)
+		{
+			switch (_getch())
+			{
+			case 119: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 87: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 214: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 246: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 115: if (x < 11) x++&& x1++&& x2++;
+				break;
+			case 83: if (x < 11) x++&& x1++&& x2++;
+				break;
+			case 219: if (x < 11) x++&& x1++&& x2++;
+				break;
+			case 251: if (x < 11) x++&& x1++&& x2++;
+				break;
+			case 97: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 65: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 212: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 244: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 100: if (y < 9) y++&& y1++&& y2++;
+				break;
+			case 68: if (y < 9) y++&& y1++&& y2++;
+				break;
+			case 194: if (y < 9) y++&& y1++&& y2++;
+				break;
+			case 226: if (y < 9) y++&& y1++&& y2++;
+				break;
+			case 13:
+				if (arr[x - 2][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 2][y - 1].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 2][y].GetState() != Cell::CellState::EMPTY) continue;
+				else
+				{
+
+					for (int i = 0; i < 10; i++)
+					{
+						for (int j = 0; j < 10; j++)
+						{
+							if (i == x - 2 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && j == y - 1)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && j == y)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && (j == y - 3 || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (i == x - 3 && (j == y - 3 || j == y - 2 || j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (i == x - 1 && (j == y - 3 || j == y - 2 || j == y - 1 || j == y || j == y + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						}
+					}
+
+					flag = false;
+					break;
+				}
+
+			}
+		}
+		if (ch == 2)
+		{
+			switch (_getch())
+			{
+			case 119: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 87: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 214: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 246: if (x > 2) x--&& x1--&& x2--;
+				break;
+			case 115: if (x < 9) x++&& x1++&& x2++;
+				break;
+			case 83: if (x < 9) x++&& x1++&& x2++;
+				break;
+			case 219: if (x < 9) x++&& x1++&& x2++;
+				break;
+			case 251: if (x < 9) x++&& x1++&& x2++;
+				break;
+			case 97: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 65: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 212: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 244: if (y > 2) y--&& y1--&& y2--;
+				break;
+			case 100: if (y < 11) y++&& y1++&& y2++;
+				break;
+			case 68: if (y < 11) y++&& y1++&& y2++;
+				break;
+			case 194: if (y < 11) y++&& y1++&& y2++;
+				break;
+			case 226: if (y < 11) y++&& y1++&& y2++;
+				break;
+			case 13:
+				if (arr[x - 2][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 1][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				else
+				{
+
+					for (int i = 0; i < 10; i++)
+					{
+						for (int j = 0; j < 10; j++)
+						{
+							if (j == y - 2 && i == x - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (j == y - 2 && i == x - 1)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (j == y - 2 && i == x)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (j == y - 2 && (i == x - 3 || i == x + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (j == y - 3 && (i == x - 3 || i == x - 2 || i == x - 1 || i == x || i == x + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (j == y - 1 && (i == x - 3 || i == x - 2 || i == x - 1 || i == x || i == x + 1)) arr[i][j].SetState(Cell::CellState::SIGN);
+						}
+					}
+
+					flag = false;
+					break;
+				}
+
+			}
+		}
+	}
+	system("cls");
+}
+
+void ManualSetShips4(Cell arr[10][10])
+{
+	int x, y, x1, y1, x2, y2, x3, y3;
+	x = 2, y = 2;
+	int ch;
+
+label1:
+	system("cls");
+	cout << "Выберите положение четырехпалубного корабля:\n1 - Горизонтальное\n2 - Вертикальное\n>";
+	cin >> ch; if (ch < 1 || ch>2) goto label1;
+	if (ch == 1) { x1 = 2; y1 = 3; x2 = 2; y2 = 4; x3 = 2; y3 = 5; }
+	else { x1 = 3; y1 = 2; x2 = 4; y2 = 2; x3 = 5; y3 = 2; }
+	system("cls");
+	bool flag = true;
+	while (flag)
+	{
+		setcur(0, 0);
+		cout << "Выберите свободное место на поле и нажмите клавишу Enter.\nУправление осуществляется с помощью клавиш wasd.\n" << endl;
+		for (int i = 0; i < 13; i++)
+		{
+			for (int j = 0; j < 28; j++)
+			{
+				if (i == 0 && (j > 1 && j < 12)) cout << setiosflags(ios::left) << setw(2) << j - 1 << resetiosflags(ios::left);
+				else if (i == 0 && (j > 16 && j < 27)) cout << setiosflags(ios::left) << setw(2) << j - 16 << resetiosflags(ios::left);
+				else if (i == 1 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 1 && (j > 16 && j < 27)) cout << "--";
+				else if (j == 0 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 0 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 15 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 15 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 1 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if (j == 16 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if ((j == 12 || j == 27) && (i > 1 && i < 12)) cout << "| ";
+				else if (i == 12 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 12 && (j > 16 && j < 27)) cout << "--";
+				else if ((i > 1 && i < 12) && (j > 1 && j < 12))
+				{
+					if (i == x && j == y) cout << "x ";
+					else if (i == x1 && j == y1) cout << "x ";
+					else if (i == x2 && j == y2) cout << "x ";
+					else if (i == x3 && j == y3) cout << "x ";
+					else arr[i - 2][j - 2].ShowState();
+				}
+				else if ((i > 1 && i < 12) && (j > 16 && j < 27)) cout << "  ";
+				else cout << "  ";
+
+			}
+			cout << endl;
+		}
+		if (ch == 1)
+		{
+			switch (_getch())
+			{
+			case 119: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 87: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 214: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 246: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 115: if (x < 11) x++&& x1++&& x2++&& x3++;
+				break;
+			case 83: if (x < 11) x++&& x1++&& x2++&& x3++;
+				break;
+			case 219: if (x < 11) x++&& x1++&& x2++&& x3++;
+				break;
+			case 251: if (x < 11) x++&& x1++&& x2++&& x3++;
+				break;
+			case 97: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 65: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 212: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 244: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 100: if (y < 8) y++&& y1++&& y2++&& y3++;
+				break;
+			case 68: if (y < 8) y++&& y1++&& y2++&& y3++;
+				break;
+			case 194: if (y < 8) y++&& y1++&& y2++&& y3++;
+				break;
+			case 226: if (y < 8) y++&& y1++&& y2++&& y3++;
+				break;
+			case 13:
+				if (arr[x - 2][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 2][y - 1].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 2][y].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 2][y + 1].GetState() != Cell::CellState::EMPTY) continue;
+				else
+				{
+
+					for (int i = 0; i < 10; i++)
+					{
+						for (int j = 0; j < 10; j++)
+						{
+							if (i == x - 2 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && j == y - 1)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && j == y)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && j == y + 1)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 2 && (j == y - 3 || j == y + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (i == x - 3 && (j == y - 3 || j == y - 2 || j == y - 1 || j == y || j == y + 1 || j == y + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (i == x - 1 && (j == y - 3 || j == y - 2 || j == y - 1 || j == y || j == y + 1 || j == y + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+						}
+					}
+
+					flag = false;
+					break;
+				}
+
+			}
+		}
+		if (ch == 2)
+		{
+			switch (_getch())
+			{
+			case 119: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 87: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 214: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 246: if (x > 2) x--&& x1--&& x2--&& x3--;
+				break;
+			case 115: if (x < 8) x++&& x1++&& x2++&& x3++;
+				break;
+			case 83: if (x < 8) x++&& x1++&& x2++&& x3++;
+				break;
+			case 219: if (x < 8) x++&& x1++&& x2++&& x3++;
+				break;
+			case 251: if (x < 8) x++&& x1++&& x2++&& x3++;
+				break;
+			case 97: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 65: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 212: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 244: if (y > 2) y--&& y1--&& y2--&& y3--;
+				break;
+			case 100: if (y < 11) y++&& y1++&& y2++&& y3++;
+				break;
+			case 68: if (y < 11) y++&& y1++&& y2++&& y3++;
+				break;
+			case 194: if (y < 11) y++&& y1++&& y2++&& y3++;
+				break;
+			case 226: if (y < 11) y++&& y1++&& y2++&& y3++;
+				break;
+			case 13:
+				if (arr[x - 2][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x - 1][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				if (arr[x + 1][y - 2].GetState() != Cell::CellState::EMPTY) continue;
+				else
+				{
+
+					for (int i = 0; i < 10; i++)
+					{
+						for (int j = 0; j < 10; j++)
+						{
+							if (i == x - 2 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x - 1 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (i == x + 1 && j == y - 2)
+							{
+								arr[i][j].SetState(Cell::CellState::LIVE);
+
+							}
+							if (j == y - 2 && (i == x - 3 || i == x + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (j == y - 3 && (i == x - 3 || i == x - 2 || i == x - 1 || i == x || i == x + 1 || i == x + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+							if (j == y - 1 && (i == x - 3 || i == x - 2 || i == x - 1 || i == x || i == x + 1 || i == x + 2)) arr[i][j].SetState(Cell::CellState::SIGN);
+						}
+					}
+
+					flag = false;
+					break;
+				}
+
+			}
+		}
+	}
+	system("cls");
+}
+
+void UserWar(Cell player[10][10], Cell pc[10][10], int& pccount)
+{
+	static int x = 2;
+	static int y = 17;
+	bool flag = true;
+	while (flag)
+	{
+		setcur(0, 0);
+		for (int i = 0; i < 13; i++)
+		{
+			for (int j = 0; j < 28; j++)
+			{
+				if (i == 0 && (j > 1 && j < 12)) cout << setiosflags(ios::left) << setw(2) << j - 1 << resetiosflags(ios::left);
+				else if (i == 0 && (j > 16 && j < 27)) cout << setiosflags(ios::left) << setw(2) << j - 16 << resetiosflags(ios::left);
+				else if (i == 1 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 1 && (j > 16 && j < 27)) cout << "--";
+				else if (j == 0 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 0 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 15 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 15 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 1 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if (j == 16 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if ((j == 12 || j == 27) && (i > 1 && i < 12)) cout << "| ";
+				else if (i == 12 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 12 && (j > 16 && j < 27)) cout << "--";
+				else if ((i > 1 && i < 12) && (j > 1 && j < 12)) player[i - 2][j - 2].ShowState();
+				else if (i == x && j == y)
+				{
+					SetColor(2, 2);
+					cout << "+ ";
+					SetColor(0, 7);
+				}
+				else if ((i > 1 && i < 12) && (j > 16 && j < 27))
+				{
+					if (pc[i - 2][j - 17].GetState() == Cell::CellState::LIVE) { SetColor(7, 3); cout << "  "; SetColor(0, 7); }
+					else pc[i - 2][j - 17].ShowState();
+				}
+				else cout << "  ";
+
+			}
+			cout << endl;
+		}
+		cout << "\n\t\t\tВаш ход\n";
+		cout << "Для управления курсором используйте wasd\nЧтобы подтвердить выбор цели - нажмите Enter" << endl << endl;
+		switch (_getch())
+		{
+		case 119: if (x > 2) x--;
+			break;
+		case 87: if (x > 2) x--;
+			break;
+		case 214: if (x > 2) x--;
+			break;
+		case 246: if (x > 2) x--;
+			break;
+		case 115: if (x < 11) x++;
+			break;
+		case 83: if (x < 11) x++;
+			break;
+		case 219: if (x < 11) x++;
+			break;
+		case 251: if (x < 11) x++;
+			break;
+		case 97: if (y > 17) y--;
+			break;
+		case 65: if (y > 17) y--;
+			break;
+		case 212: if (y > 17) y--;
+			break;
+		case 244: if (y > 17) y--;
+			break;
+		case 100: if (y < 26) y++;
+			break;
+		case 68: if (y < 26) y++;
+			break;
+		case 194: if (y < 26) y++;
+			break;
+		case 226: if (y < 26) y++;
+			break;
+		case 13:
+			if (pc[x - 2][y - 17].GetState() == Cell::CellState::EMPTY)
+			{
+				pc[x - 2][y - 17].SetState(Cell::CellState::SIGN);
+				cout << "Мимо  " << endl;
+				Sleep(500);
+				flag = false;
+			}
+			else
+			{
+				if (pc[x - 2][y - 17].GetState() == Cell::CellState::LIVE)
+				{
+					pc[x - 2][y - 17].SetState(Cell::CellState::DEAD);
+					pccount--;
+					if (pccount == 0) flag = false;
+					if (pc[x - 3][y - 17].GetState() == Cell::CellState::LIVE && x - 3 >= 0 && x - 3 < 10 && y - 17 >= 0 && y - 17 < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x - 1][y - 17].GetState() == Cell::CellState::LIVE && x - 1 >= 0 && x - 1 < 10 && y - 17 >= 0 && y - 17 < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x - 2][y - 18].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y - 18 >= 0 && y - 18 < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x - 2][y - 16].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y - 16 >= 0 && y - 16 < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+
+
+					if (pc[x - 4][y - 17].GetState() == Cell::CellState::LIVE && x - 4 >= 0 && x - 4 < 10 && y - 17 >= 0 && y - 17 < 10 && pc[x - 3][y - 17].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x][y - 17].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y - 17 >= 0 && y - 17 < 10 && pc[x - 1][y - 17].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x - 2][y - 19].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y - 19 >= 0 && y - 19 < 10 && pc[x - 2][y - 18].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x - 2][y - 15].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y - 15 >= 0 && y - 15 < 10 && pc[x - 2][y - 16].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+
+
+					if (pc[x - 5][y - 17].GetState() == Cell::CellState::LIVE && x - 5 >= 0 && x - 5 < 10 && y - 17 >= 0 && y - 17 < 10 && pc[x - 4][y - 17].GetState() == Cell::CellState::DEAD && pc[x - 3][y - 17].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x + 1][y - 17].GetState() == Cell::CellState::LIVE && x + 1 >= 0 && x + 1 < 10 && y - 17 >= 0 && y - 17 < 10 && pc[x][y - 17].GetState() == Cell::CellState::DEAD && pc[x - 1][y - 17].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x - 2][y - 20].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y - 20 >= 0 && y - 20 < 10 && pc[x - 2][y - 18].GetState() == Cell::CellState::DEAD && pc[x - 2][y - 19].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+					if (pc[x - 2][y - 14].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y - 14 >= 0 && y - 14 < 10 && pc[x - 2][y - 16].GetState() == Cell::CellState::DEAD && pc[x - 2][y - 15].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(500);
+						goto mark;
+					}
+
+
+					else
+					{
+						cout << "Убил! " << endl;
+						for (int i = 1; i < 5; i++)
+						{
+							if (pc[x - 2 - i][y - 17].GetState() == Cell::CellState::DEAD && x - 2 - i >= 0 && x - 2 - i < 10 && y - 17 >= 0 && y - 17 < 10)
+							{
+								if (y - 16 >= 0 && y - 16 < 10) pc[x - 2 - i][y - 16].SetState(Cell::CellState::SIGN);
+								if (y - 18 >= 0 && y - 18 < 10) pc[x - 2 - i][y - 18].SetState(Cell::CellState::SIGN);
+								if (y - 18 >= 0 && y - 18 < 10) pc[x - 2][y - 18].SetState(Cell::CellState::SIGN);
+								if (y - 16 >= 0 && y - 16 < 10) pc[x - 2][y - 16].SetState(Cell::CellState::SIGN);
+							}
+							else if (pc[x - 2 - i][y - 17].GetState() != Cell::CellState::DEAD && x - 2 - i >= 0 && x - 2 - i < 10 && y - 17 >= 0 && y - 17 < 10)
+							{
+								if (x - 2 - i >= 0 && x - 2 - i < 10 && y - 17 >= 0 && y - 17 < 10 && pc[x - 2 - i][y - 17].GetState() != Cell::CellState::DEAD) pc[x - 2 - i][y - 17].SetState(Cell::CellState::SIGN);
+								if (x - 2 - i >= 0 && x - 2 - i < 10 && y - 16 >= 0 && y - 16 < 10 && pc[x - 2 - i][y - 16].GetState() != Cell::CellState::DEAD) pc[x - 2 - i][y - 16].SetState(Cell::CellState::SIGN);
+								if (x - 2 - i >= 0 && x - 2 - i < 10 && y - 18 >= 0 && y - 18 < 10 && pc[x - 2 - i][y - 18].GetState() != Cell::CellState::DEAD) pc[x - 2 - i][y - 18].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+						for (int i = 1; i < 5; i++)
+						{
+							if (pc[x - 2 + i][y - 17].GetState() == Cell::CellState::DEAD && x - 2 + i >= 0 && x - 2 + i < 10 && y - 17 >= 0 && y - 17 < 10)
+							{
+								if (y - 16 >= 0 && y - 16 < 10) pc[x - 2 + i][y - 16].SetState(Cell::CellState::SIGN);
+								if (y - 18 >= 0 && y - 18 < 10) pc[x - 2 + i][y - 18].SetState(Cell::CellState::SIGN);
+								if (y - 18 >= 0 && y - 18 < 10) pc[x - 2][y - 18].SetState(Cell::CellState::SIGN);
+								if (y - 16 >= 0 && y - 16 < 10) pc[x - 2][y - 16].SetState(Cell::CellState::SIGN);
+							}
+							else if (pc[x - 2 + i][y - 17].GetState() != Cell::CellState::DEAD && x - 2 + i >= 0 && x - 2 + i < 10 && y - 17 >= 0 && y - 17 < 10)
+							{
+								if (x - 2 + i >= 0 && x - 2 + i < 10 && y - 17 >= 0 && y - 17 < 10 && pc[x - 2 + i][y - 17].GetState() != Cell::CellState::DEAD) pc[x - 2 + i][y - 17].SetState(Cell::CellState::SIGN);
+								if (x - 2 + i >= 0 && x - 2 + i < 10 && y - 16 >= 0 && y - 16 < 10 && pc[x - 2 + i][y - 16].GetState() != Cell::CellState::DEAD) pc[x - 2 + i][y - 16].SetState(Cell::CellState::SIGN);
+								if (x - 2 + i >= 0 && x - 2 + i < 10 && y - 18 >= 0 && y - 18 < 10 && pc[x - 2 + i][y - 18].GetState() != Cell::CellState::DEAD) pc[x - 2 + i][y - 18].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+						for (int i = 1; i < 5; i++)
+						{
+							if (pc[x - 2][y - 17 - i].GetState() == Cell::CellState::DEAD && x - 2 >= 0 && x - 2 < 10 && y - 17 - i >= 0 && y - 17 - i < 10)
+							{
+								if (x - 3 >= 0 && x - 3 < 10) pc[x - 3][y - 17].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10) pc[x - 1][y - 17].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10 && y - 17 - i >= 0 && y - 17 - i < 10) pc[x - 1][y - 17 - i].SetState(Cell::CellState::SIGN);
+								if (x - 3 >= 0 && x - 3 < 10 && y - 17 - i >= 0 && y - 17 - i < 10) pc[x - 3][y - 17 - i].SetState(Cell::CellState::SIGN);
+							}
+							else if (pc[x - 2][y - 17 - i].GetState() != Cell::CellState::DEAD && x - 2 >= 0 && x - 2 < 10 && y - 17 - i >= 0 && y - 17 - i < 10)
+							{
+								if (x - 3 >= 0 && x - 3 < 10 && y - 17 - i >= 0 && y - 17 - i < 10 && pc[x - 3][y - 17 - i].GetState() != Cell::CellState::DEAD) pc[x - 3][y - 17 - i].SetState(Cell::CellState::SIGN);
+								if (x - 2 >= 0 && x - 2 < 10 && y - 17 - i >= 0 && y - 17 - i < 10 && pc[x - 2][y - 17 - i].GetState() != Cell::CellState::DEAD) pc[x - 2][y - 17 - i].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10 && y - 17 - i >= 0 && y - 17 - i < 10 && pc[x - 1][y - 17 - i].GetState() != Cell::CellState::DEAD) pc[x - 1][y - 17 - i].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+						for (int i = 1; i < 5; i++)
+						{
+							if (pc[x - 2][y - 17 + i].GetState() == Cell::CellState::DEAD && x - 2 >= 0 && x - 2 < 10 && y - 17 + i >= 0 && y - 17 + i < 10)
+							{
+								if (x - 3 >= 0 && x - 3 < 10) pc[x - 3][y - 17].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10) pc[x - 1][y - 17].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10 && y - 17 + i >= 0 && y - 17 + i < 10) pc[x - 1][y - 17 + i].SetState(Cell::CellState::SIGN);
+								if (x - 3 >= 0 && x - 3 < 10 && y - 17 + i >= 0 && y - 17 + i < 10) pc[x - 3][y - 17 + i].SetState(Cell::CellState::SIGN);
+							}
+							else if (pc[x - 2][y - 17 + i].GetState() != Cell::CellState::DEAD && x - 2 >= 0 && x - 2 < 10 && y - 17 + i >= 0 && y - 17 + i < 10)
+							{
+								if (x - 3 >= 0 && x - 3 < 10 && y - 17 + i >= 0 && y - 17 + i < 10 && pc[x - 3][y - 17 + i].GetState() != Cell::CellState::DEAD) pc[x - 3][y - 17 + i].SetState(Cell::CellState::SIGN);
+								if (x - 2 >= 0 && x - 2 < 10 && y - 17 + i >= 0 && y - 17 + i < 10 && pc[x - 2][y - 17 + i].GetState() != Cell::CellState::DEAD) pc[x - 2][y - 17 + i].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10 && y - 17 + i >= 0 && y - 17 + i < 10 && pc[x - 1][y - 17 + i].GetState() != Cell::CellState::DEAD) pc[x - 1][y - 17 + i].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+
+						Sleep(1000);
+					}
+
+				}
+
+			}
+		mark:
+			system("cls");
+			break;
+		}
+	}
+
+}
+
+void PCWar(Cell player[10][10], Cell pc[10][10], int& usercount, int& ch)
+{
+
+	static int x = 0;
+	static int y = 0;
+	char letters[11] = "АБВГДЕЖЗИК";
+	bool flag = true;
+	while (flag)
+	{
+		system("cls");
+		for (int i = 0; i < 13; i++)
+		{
+			for (int j = 0; j < 28; j++)
+			{
+				if (i == 0 && (j > 1 && j < 12)) cout << setiosflags(ios::left) << setw(2) << j - 1 << resetiosflags(ios::left);
+				else if (i == 0 && (j > 16 && j < 27)) cout << setiosflags(ios::left) << setw(2) << j - 16 << resetiosflags(ios::left);
+				else if (i == 1 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 1 && (j > 16 && j < 27)) cout << "--";
+				else if (j == 0 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 0 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 15 && (i > 1 && i < 11)) cout << setw(2) << char(190 + i);
+				else if (j == 15 && (i > 1 && i == 11)) cout << setw(2) << char(202);
+				else if (j == 1 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if (j == 16 && (i > 1 && i < 12)) cout << setw(2) << "|";
+				else if ((j == 12 || j == 27) && (i > 1 && i < 12)) cout << "| ";
+				else if (i == 12 && (j > 1 && j < 12)) cout << "--";
+				else if (i == 12 && (j > 16 && j < 27)) cout << "--";
+				else if ((i > 1 && i < 12) && (j > 1 && j < 12)) player[i - 2][j - 2].ShowState();
+				else if ((i > 1 && i < 12) && (j > 16 && j < 27))
+				{
+					if (pc[i - 2][j - 17].GetState() == Cell::CellState::LIVE) { SetColor(7, 3); cout << "  "; SetColor(0, 7); }
+					else pc[i - 2][j - 17].ShowState();
+				}
+				else cout << "  ";
+
+			}
+			cout << endl;
+		}
+		
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 0; j < 10; j++)
+			{
+				if (i == j && player[i][j].GetState() != Cell::CellState::SIGN && player[i][j].GetState() != Cell::CellState::DEAD)
+				{
+					x = i;
+					y = j;
+					goto mark;
+				}
+			}
+		}
+
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 0; j < 10; j++)
+			{
+				if (i + j == 9 && player[i][j].GetState() != Cell::CellState::SIGN && player[i][j].GetState() != Cell::CellState::DEAD)
+				{
+					x = i;
+					y = j;
+					goto mark;
+				}
+			}
+		}
+
+		for (int i = 0, j = 5; i < 10; i++)
+		{
+			if (player[i][j].GetState() != Cell::CellState::SIGN && player[i][j].GetState() != Cell::CellState::DEAD)
+			{
+				x = i;
+				y = j;
+				goto mark;
+			}
+		}
+
+		for (int i = 5, j = 0; j < 10; j++)
+		{
+			if (player[i][j].GetState() != Cell::CellState::SIGN && player[i][j].GetState() != Cell::CellState::DEAD)
+			{
+				x = i;
+				y = j;
+				goto mark;
+			}
+		}
+		
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 0; j < 10; j++)
+			{
+				if (player[i][j].GetState() != Cell::CellState::SIGN && player[i][j].GetState() != Cell::CellState::DEAD)
+				{
+					x = i;
+					y = j;
+					goto mark;
+				}
+			}
+		}
+	mark:
+		cout << "\n\t\t\tХод Компьютера\n";
+		cout << "Стреляю " << letters[x] << y + 1 << "  " << endl;
+		if (player[x][y].GetState() == Cell::CellState::EMPTY)
+		{
+			player[x][y].SetState(Cell::CellState::SIGN);
+			cout << "Мимо  " << endl;
+			Sleep(1000);
+			flag = false;
+			continue;
+
+		}
+		else
+		{
+			if (ch == 1)
+			{
+				if (player[x][y].GetState() == Cell::CellState::LIVE)
+				{
+					player[x][y].SetState(Cell::CellState::DEAD);
+					usercount--;
+					if (usercount == 0) flag = false;
+					if (player[x - 1][y].GetState() == Cell::CellState::LIVE && x - 1 >= 0 && x - 1 < 10 && y >= 0 && y < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x + 1][y].GetState() == Cell::CellState::LIVE && x + 1 >= 0 && x + 1 < 10 && y >= 0 && y < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x][y - 1].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y - 1 >= 0 && y - 1 < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x][y + 1].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y + 1 >= 0 && y + 1 < 10)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+
+
+					if (player[x - 2][y].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y >= 0 && y < 10 && player[x - 1][y].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x + 2][y].GetState() == Cell::CellState::LIVE && x + 2 >= 0 && x + 2 < 10 && y >= 0 && y < 10 && player[x + 1][y].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x][y - 2].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y - 2 >= 0 && y - 2 < 10 && player[x][y - 1].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x][y + 2].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y + 2 >= 0 && y + 2 < 10 && player[x][y + 1].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+
+
+					if (player[x - 3][y].GetState() == Cell::CellState::LIVE && x - 3 >= 0 && x - 3 < 10 && y >= 0 && y < 10 && player[x - 2][y].GetState() == Cell::CellState::DEAD && player[x - 1][y].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x + 3][y].GetState() == Cell::CellState::LIVE && x + 3 >= 0 && x + 3 < 10 && y >= 0 && y < 10 && player[x + 2][y].GetState() == Cell::CellState::DEAD && player[x + 1][y].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x][y - 3].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y - 3 >= 0 && y - 3 < 10 && player[x][y - 1].GetState() == Cell::CellState::DEAD && player[x][y - 2].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					if (player[x][y + 3].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y + 3 >= 0 && y + 3 < 10 && player[x][y + 1].GetState() == Cell::CellState::DEAD && player[x][y + 2].GetState() == Cell::CellState::DEAD)
+					{
+						cout << "Ранил!" << endl;
+						Sleep(1000);
+						continue;
+					}
+					else
+					{
+						cout << "Убил! " << endl;
+						Sleep(1000);
+						for (int i = 1; i < 5; i++)
+						{
+							if (player[x - i][y].GetState() == Cell::CellState::DEAD && x - i >= 0 && x - i < 10 && y >= 0 && y < 10)
+							{
+								if (y + 1 >= 0 && y + 1 < 10) player[x - i][y + 1].SetState(Cell::CellState::SIGN);
+								if (y - 1 >= 0 && y - 1 < 10) player[x - i][y - 1].SetState(Cell::CellState::SIGN);
+								if (y - 1 >= 0 && y - 1 < 10) player[x][y - 1].SetState(Cell::CellState::SIGN);
+								if (y + 1 >= 0 && y + 1 < 10) player[x][y + 1].SetState(Cell::CellState::SIGN);
+							}
+							else if (player[x - i][y].GetState() != Cell::CellState::DEAD && x - i >= 0 && x - i < 10 && y >= 0 && y < 10)
+							{
+								if (x - i >= 0 && x - i < 10 && y >= 0 && y < 10 && player[x - i][y].GetState() != Cell::CellState::DEAD) player[x - i][y].SetState(Cell::CellState::SIGN);
+								if (x - i >= 0 && x - i < 10 && y + 1 >= 0 && y + 1 < 10 && player[x - i][y + 1].GetState() != Cell::CellState::DEAD) player[x - i][y + 1].SetState(Cell::CellState::SIGN);
+								if (x - i >= 0 && x - i < 10 && y - 1 >= 0 && y - 1 < 10 && player[x - i][y - 1].GetState() != Cell::CellState::DEAD) player[x - i][y - 1].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+						for (int i = 1; i < 5; i++)
+						{
+							if (player[x + i][y].GetState() == Cell::CellState::DEAD && x + i >= 0 && x + i < 10 && y >= 0 && y < 10)
+							{
+								if (y + 1 >= 0 && y + 1 < 10) player[x + i][y + 1].SetState(Cell::CellState::SIGN);
+								if (y - 1 >= 0 && y - 1 < 10) player[x + i][y - 1].SetState(Cell::CellState::SIGN);
+								if (y - 1 >= 0 && y - 1 < 10) player[x][y - 1].SetState(Cell::CellState::SIGN);
+								if (y + 1 >= 0 && y + 1 < 10) player[x][y + 1].SetState(Cell::CellState::SIGN);
+							}
+							else if (player[x + i][y].GetState() != Cell::CellState::DEAD && x + i >= 0 && x + i < 10 && y >= 0 && y < 10)
+							{
+								if (x + i >= 0 && x + i < 10 && y >= 0 && y < 10 && player[x + i][y].GetState() != Cell::CellState::DEAD) player[x + i][y].SetState(Cell::CellState::SIGN);
+								if (x + i >= 0 && x + i < 10 && y + 1 >= 0 && y + 1 < 10 && player[x + i][y + 1].GetState() != Cell::CellState::DEAD) player[x + i][y + 1].SetState(Cell::CellState::SIGN);
+								if (x + i >= 0 && x + i < 10 && y - 1 >= 0 && y - 1 < 10 && player[x + i][y - 1].GetState() != Cell::CellState::DEAD) player[x + i][y - 1].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+						for (int i = 1; i < 5; i++)
+						{
+							if (player[x][y - i].GetState() == Cell::CellState::DEAD && x >= 0 && x < 10 && y - i >= 0 && y - i < 10)
+							{
+								if (x - 1 >= 0 && x - 1 < 10) player[x - 1][y].SetState(Cell::CellState::SIGN);
+								if (x + 1 >= 0 && x + 1 < 10) player[x + 1][y].SetState(Cell::CellState::SIGN);
+								if (x + 1 >= 0 && x + 1 < 10 && y - i >= 0 && y - i < 10) player[x + 1][y - i].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10 && y - i >= 0 && y - i < 10) player[x - 1][y - i].SetState(Cell::CellState::SIGN);
+							}
+							else if (player[x][y - i].GetState() != Cell::CellState::DEAD && x >= 0 && x < 10 && y - i >= 0 && y - i < 10)
+							{
+								if (x - 1 >= 0 && x - 1 < 10 && y - i >= 0 && y - i < 10 && player[x - 1][y - i].GetState() != Cell::CellState::DEAD) player[x - 1][y - i].SetState(Cell::CellState::SIGN);
+								if (x >= 0 && x < 10 && y - i >= 0 && y - i < 10 && player[x][y - i].GetState() != Cell::CellState::DEAD) player[x][y - i].SetState(Cell::CellState::SIGN);
+								if (x + 1 >= 0 && x + 1 < 10 && y - i >= 0 && y - i < 10 && player[x + 1][y - i].GetState() != Cell::CellState::DEAD) player[x + 1][y - i].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+						for (int i = 1; i < 5; i++)
+						{
+							if (player[x][y + i].GetState() == Cell::CellState::DEAD && x >= 0 && x < 10 && y + i >= 0 && y + i < 10)
+							{
+								if (x - 1 >= 0 && x - 1 < 10) player[x - 1][y].SetState(Cell::CellState::SIGN);
+								if (x + 1 >= 0 && x + 1 < 10) player[x + 1][y].SetState(Cell::CellState::SIGN);
+								if (x + 1 >= 0 && x + 1 < 10 && y + i >= 0 && y + i < 10) player[x + 1][y + i].SetState(Cell::CellState::SIGN);
+								if (x - 1 >= 0 && x - 1 < 10 && y + i >= 0 && y + i < 10) player[x - 1][y + i].SetState(Cell::CellState::SIGN);
+							}
+							else if (player[x][y + i].GetState() != Cell::CellState::DEAD && x >= 0 && x < 10 && y + i >= 0 && y + i < 10)
+							{
+								if (x - 1 >= 0 && x - 1 < 10 && y + i >= 0 && y + i < 10 && player[x - 1][y + i].GetState() != Cell::CellState::DEAD) player[x - 1][y + i].SetState(Cell::CellState::SIGN);
+								if (x >= 0 && x < 10 && y + i >= 0 && y + i < 10 && player[x][y + i].GetState() != Cell::CellState::DEAD) player[x][y + i].SetState(Cell::CellState::SIGN);
+								if (x + 1 >= 0 && x + 1 < 10 && y + i >= 0 && y + i < 10 && player[x + 1][y + i].GetState() != Cell::CellState::DEAD) player[x + 1][y + i].SetState(Cell::CellState::SIGN);
+								break;
+							}
+						}
+
+
+					}
+				}
+			}
+			else
+			{
+				player[x][y].SetState(Cell::CellState::DEAD);
+				usercount--;
+				if (usercount == 0) flag = false;
+				if (player[x - 1][y].GetState() == Cell::CellState::LIVE && x - 1 >= 0 && x - 1 < 10 && y >= 0 && y < 10)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					x--;
+					goto mark;
+				}
+				if (player[x + 1][y].GetState() == Cell::CellState::LIVE && x + 1 >= 0 && x + 1 < 10 && y >= 0 && y < 10)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					x++;
+					goto mark;
+				}
+				if (player[x][y - 1].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y - 1 >= 0 && y - 1 < 10)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					y--;
+					goto mark;
+				}
+				if (player[x][y + 1].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y + 1 >= 0 && y + 1 < 10)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					y++;
+					goto mark;
+				}
+
+
+				if (player[x - 2][y].GetState() == Cell::CellState::LIVE && x - 2 >= 0 && x - 2 < 10 && y >= 0 && y < 10 && player[x - 1][y].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					x -= 2;
+					goto mark;
+				}
+				if (player[x + 2][y].GetState() == Cell::CellState::LIVE && x + 2 >= 0 && x + 2 < 10 && y >= 0 && y < 10 && player[x + 1][y].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					x += 2;
+					goto mark;
+				}
+				if (player[x][y - 2].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y - 2 >= 0 && y - 2 < 10 && player[x][y - 1].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					y -= 2;
+					goto mark;
+				}
+				if (player[x][y + 2].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y + 2 >= 0 && y + 2 < 10 && player[x][y + 1].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					y += 2;
+					goto mark;
+				}
+
+
+				if (player[x - 3][y].GetState() == Cell::CellState::LIVE && x - 3 >= 0 && x - 3 < 10 && y >= 0 && y < 10 && player[x - 2][y].GetState() == Cell::CellState::DEAD && player[x - 1][y].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					x -= 3;
+					goto mark;
+				}
+				if (player[x + 3][y].GetState() == Cell::CellState::LIVE && x + 3 >= 0 && x + 3 < 10 && y >= 0 && y < 10 && player[x + 2][y].GetState() == Cell::CellState::DEAD && player[x + 1][y].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					x += 3;
+					goto mark;
+				}
+				if (player[x][y - 3].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y - 3 >= 0 && y - 3 < 10 && player[x][y - 1].GetState() == Cell::CellState::DEAD && player[x][y - 2].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					y -= 3;
+					goto mark;
+				}
+				if (player[x][y + 3].GetState() == Cell::CellState::LIVE && x >= 0 && x < 10 && y + 3 >= 0 && y + 3 < 10 && player[x][y + 1].GetState() == Cell::CellState::DEAD && player[x][y + 2].GetState() == Cell::CellState::DEAD)
+				{
+					cout << "Ранил!" << endl;
+					Sleep(1000);
+					y += 3;
+					goto mark;
+				}
+				else
+				{
+					cout << "Убил! " << endl;
+					Sleep(1000);
+					for (int i = 1; i < 5; i++)
+					{
+						if (player[x - i][y].GetState() == Cell::CellState::DEAD && x - i >= 0 && x - i < 10 && y >= 0 && y < 10)
+						{
+							if (y + 1 >= 0 && y + 1 < 10) player[x - i][y + 1].SetState(Cell::CellState::SIGN);
+							if (y - 1 >= 0 && y - 1 < 10) player[x - i][y - 1].SetState(Cell::CellState::SIGN);
+							if (y - 1 >= 0 && y - 1 < 10) player[x][y - 1].SetState(Cell::CellState::SIGN);
+							if (y + 1 >= 0 && y + 1 < 10) player[x][y + 1].SetState(Cell::CellState::SIGN);
+						}
+						else if (player[x - i][y].GetState() != Cell::CellState::DEAD && x - i >= 0 && x - i < 10 && y >= 0 && y < 10)
+						{
+							if (x - i >= 0 && x - i < 10 && y >= 0 && y < 10 && player[x - i][y].GetState() != Cell::CellState::DEAD) player[x - i][y].SetState(Cell::CellState::SIGN);
+							if (x - i >= 0 && x - i < 10 && y + 1 >= 0 && y + 1 < 10 && player[x - i][y + 1].GetState() != Cell::CellState::DEAD) player[x - i][y + 1].SetState(Cell::CellState::SIGN);
+							if (x - i >= 0 && x - i < 10 && y - 1 >= 0 && y - 1 < 10 && player[x - i][y - 1].GetState() != Cell::CellState::DEAD) player[x - i][y - 1].SetState(Cell::CellState::SIGN);
+							break;
+						}
+					}
+
+					for (int i = 1; i < 5; i++)
+					{
+						if (player[x + i][y].GetState() == Cell::CellState::DEAD && x + i >= 0 && x + i < 10 && y >= 0 && y < 10)
+						{
+							if (y + 1 >= 0 && y + 1 < 10) player[x + i][y + 1].SetState(Cell::CellState::SIGN);
+							if (y - 1 >= 0 && y - 1 < 10) player[x + i][y - 1].SetState(Cell::CellState::SIGN);
+							if (y - 1 >= 0 && y - 1 < 10) player[x][y - 1].SetState(Cell::CellState::SIGN);
+							if (y + 1 >= 0 && y + 1 < 10) player[x][y + 1].SetState(Cell::CellState::SIGN);
+						}
+						else if (player[x + i][y].GetState() != Cell::CellState::DEAD && x + i >= 0 && x + i < 10 && y >= 0 && y < 10)
+						{
+							if (x + i >= 0 && x + i < 10 && y >= 0 && y < 10 && player[x + i][y].GetState() != Cell::CellState::DEAD) player[x + i][y].SetState(Cell::CellState::SIGN);
+							if (x + i >= 0 && x + i < 10 && y + 1 >= 0 && y + 1 < 10 && player[x + i][y + 1].GetState() != Cell::CellState::DEAD) player[x + i][y + 1].SetState(Cell::CellState::SIGN);
+							if (x + i >= 0 && x + i < 10 && y - 1 >= 0 && y - 1 < 10 && player[x + i][y - 1].GetState() != Cell::CellState::DEAD) player[x + i][y - 1].SetState(Cell::CellState::SIGN);
+							break;
+						}
+					}
+
+					for (int i = 1; i < 5; i++)
+					{
+						if (player[x][y - i].GetState() == Cell::CellState::DEAD && x >= 0 && x < 10 && y - i >= 0 && y - i < 10)
+						{
+							if (x - 1 >= 0 && x - 1 < 10) player[x - 1][y].SetState(Cell::CellState::SIGN);
+							if (x + 1 >= 0 && x + 1 < 10) player[x + 1][y].SetState(Cell::CellState::SIGN);
+							if (x + 1 >= 0 && x + 1 < 10 && y - i >= 0 && y - i < 10) player[x + 1][y - i].SetState(Cell::CellState::SIGN);
+							if (x - 1 >= 0 && x - 1 < 10 && y - i >= 0 && y - i < 10) player[x - 1][y - i].SetState(Cell::CellState::SIGN);
+						}
+						else if (player[x][y - i].GetState() != Cell::CellState::DEAD && x >= 0 && x < 10 && y - i >= 0 && y - i < 10)
+						{
+							if (x - 1 >= 0 && x - 1 < 10 && y - i >= 0 && y - i < 10 && player[x - 1][y - i].GetState() != Cell::CellState::DEAD) player[x - 1][y - i].SetState(Cell::CellState::SIGN);
+							if (x >= 0 && x < 10 && y - i >= 0 && y - i < 10 && player[x][y - i].GetState() != Cell::CellState::DEAD) player[x][y - i].SetState(Cell::CellState::SIGN);
+							if (x + 1 >= 0 && x + 1 < 10 && y - i >= 0 && y - i < 10 && player[x + 1][y - i].GetState() != Cell::CellState::DEAD) player[x + 1][y - i].SetState(Cell::CellState::SIGN);
+							break;
+						}
+					}
+
+					for (int i = 1; i < 5; i++)
+					{
+						if (player[x][y + i].GetState() == Cell::CellState::DEAD && x >= 0 && x < 10 && y + i >= 0 && y + i < 10)
+						{
+							if (x - 1 >= 0 && x - 1 < 10) player[x - 1][y].SetState(Cell::CellState::SIGN);
+							if (x + 1 >= 0 && x + 1 < 10) player[x + 1][y].SetState(Cell::CellState::SIGN);
+							if (x + 1 >= 0 && x + 1 < 10 && y + i >= 0 && y + i < 10) player[x + 1][y + i].SetState(Cell::CellState::SIGN);
+							if (x - 1 >= 0 && x - 1 < 10 && y + i >= 0 && y + i < 10) player[x - 1][y + i].SetState(Cell::CellState::SIGN);
+						}
+						else if (player[x][y + i].GetState() != Cell::CellState::DEAD && x >= 0 && x < 10 && y + i >= 0 && y + i < 10)
+						{
+							if (x - 1 >= 0 && x - 1 < 10 && y + i >= 0 && y + i < 10 && player[x - 1][y + i].GetState() != Cell::CellState::DEAD) player[x - 1][y + i].SetState(Cell::CellState::SIGN);
+							if (x >= 0 && x < 10 && y + i >= 0 && y + i < 10 && player[x][y + i].GetState() != Cell::CellState::DEAD) player[x][y + i].SetState(Cell::CellState::SIGN);
+							if (x + 1 >= 0 && x + 1 < 10 && y + i >= 0 && y + i < 10 && player[x + 1][y + i].GetState() != Cell::CellState::DEAD) player[x + 1][y + i].SetState(Cell::CellState::SIGN);
+							break;
+						}
+					}
+
+
+				}
+			}
+		}
+		Sleep(1000);
+	}
+	system("cls");
+}
+
+void SetColor(int text, int background)
+{
+	HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hStdOut, (WORD)((background << 4) | text));
+}
+
+enum ConsoleColor
+{
+	Black = 0,
+	Blue = 1,
+	Green = 2,
+	Cyan = 3,
+	Red = 4,
+	Magenta = 5,
+	Brown = 6,
+	LightGray = 7,
+	DarkGray = 8,
+	LightBlue = 9,
+	LightGreen = 10,
+	LightCyan = 11,
+	LightRed = 12,
+	LightMagenta = 13,
+	Yellow = 14,
+	White = 15
+};
