@@ -1,0 +1,39 @@
+#include <iostream>
+#include <conio.h>
+#include <string>
+#include <windows.h>
+using namespace std;
+
+int main(){
+	SetConsoleCP(1251); SetConsoleOutputCP(1251); setlocale(LC_ALL, "rus");
+	string str, buffer, lat_stat, cyr_stat, num_stat, sym_stat;
+	cout << "Введите текст" << endl; getline(cin, str); buffer = str;
+	int lat, cyr, num, sym, exit; lat = cyr = num = sym = exit = 0;
+	while (!exit){
+		system("cls");
+		lat_stat = (lat != 0) ? "ON " : "OFF"; cyr_stat = (cyr != 0) ? "ON " : "OFF"; num_stat = (num != 0) ? "ON " : "OFF"; sym_stat = (sym != 0) ? "ON " : "OFF";
+		cout << "1 - Фильтр латинницы: " << lat_stat << "\n2 - Фильтр кириллицы: " << cyr_stat << "\n3 - Фильтр цифр: " << num_stat << "\n4 - Фильтр пунктуации: " << sym_stat << "\n\nВыход: Esc\n\n" << buffer << endl;
+		switch (_getch()) {
+		case 49: (lat == 0) ? lat++ : lat--; break;
+		case 50: (cyr == 0) ? cyr++ : cyr--; break;
+		case 51: (num == 0) ? num++ : num--; break;
+		case 52: (sym == 0) ? sym++ : sym--; break;
+		case 27: exit++; break;}
+		if (lat != 0) for (int i = 0; i < str.length(); i++) 
+			if (((int)str[i] >= 97 && (int)str[i] <= 122) || ((int)str[i] >= 65 && (int)str[i] <= 90)) buffer[i] = '*';
+		if (lat == 0) for (int i = 0; i < str.length(); i++)
+			if (((int)str[i] >= 97 && (int)str[i] <= 122) || ((int)str[i] >= 65 && (int)str[i] <= 90)) buffer[i] = str[i];
+		if (cyr != 0) for (int i = 0; i < str.length(); i++)
+		if (((int)str[i] >= -32 && (int)str[i] <= -1) || ((int)str[i] >= -64 && (int)str[i] <= -33) || (int)str[i] == -88 || (int)str[i] == -72) buffer[i] = '*';
+		if (cyr == 0) for (int i = 0; i < str.length(); i++)
+			if (((int)str[i] >= -32 && (int)str[i] <= -1) || ((int)str[i] >= -64 && (int)str[i] <= -33) || (int)str[i] == -88 || (int)str[i] == -72) buffer[i] = str[i];
+		if (num != 0) for (int i = 0; i < str.length(); i++) 
+			if ((int)str[i] >= 48 && (int)str[i] <= 57) buffer[i] = '*';
+		if (num == 0) for (int i = 0; i < str.length(); i++) 
+			if ((int)str[i] >= 48 && (int)str[i] <= 57) buffer[i] = str[i];
+		if (sym != 0) for (int i = 0; i < str.length(); i++)
+			if (((int)str[i] >= 33 && (int)str[i] <= 47) || ((int)str[i] >= 58 && (int)str[i] <= 64) || ((int)str[i] >= 123 && (int)str[i] <= 126) || ((int)str[i] >= 91 && (int)str[i] <= 96) || (int)str[i] == -71) buffer[i] = '*';
+		if (sym == 0) for (int i = 0; i < str.length(); i++)
+			if (((int)str[i] >= 33 && (int)str[i] <= 47) || ((int)str[i] >= 58 && (int)str[i] <= 64) || ((int)str[i] >= 123 && (int)str[i] <= 126) || ((int)str[i] >= 91 && (int)str[i] <= 96) || (int)str[i] == -71) buffer[i] = str[i];}
+	return 0;}
+
