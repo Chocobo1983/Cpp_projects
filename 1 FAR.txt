@@ -1,0 +1,183 @@
+//Выполнил Гуреев Николай
+
+#include <iostream>
+#include <fstream>
+#include <string>
+
+using namespace std;
+
+void ddir();	//Показ системного и локального дисков
+void mkfile();  //Создание файла
+void rmfile();  //Удаление файла
+void mkdir();   //Создание каталога
+void rmdir();	//Удаление каталога
+void ren();		//Переименование файла или каталога
+void fcopy();	//Копирование файла
+void dcopy();	//Копирование каталога
+void move();	//Перемещение файла или каталога
+void getSize();	//Вывод в консоль размера файла или каталога в байтах
+void find();	//Поиск по маске с учетом вложенных каталогов
+void cmd();		//Ручное управление консолью Windows
+
+int main()
+{
+	setlocale(0, "");
+	system("color 1F");
+	system("title Gureyev Commander");
+	char exit = '1';
+	while (exit == '1')
+	{
+		system("cls");
+		system("dir");
+		int choice;
+		cout << "\n\n\t\t\t\tВыберите опцию:\n\n1 - Показывать содержимое дисков\t\t7 - Копирование файлов\n2 - Создавать файл\t\t\t\t8 - Копирование папок"
+			"\n3 - Удалить файл\t\t\t\t9 - Перенести каталог\\файл\n4 - Cоздать каталог\t\t\t       10 - Вычислить размер каталога\\файла"
+			"\n5 - Удалить каталог\t\t\t       11 - Поиск по маске\n6 - Переименовать файл\\каталог\t\t       12 - Командная строка\n>";
+		cin >> choice; cin.ignore();
+		switch (choice)
+		{
+		case 1: ddir();		break;
+		case 2: mkfile();	break;
+		case 3: rmfile();	break;
+		case 4: mkdir();	break;
+		case 5: rmdir();	break;
+		case 6: ren();		break;
+		case 7: fcopy();	break;
+		case 8: dcopy();	break;
+		case 9: move();	    break;
+		case 10: getSize(); break;
+		case 11: find();	break;
+		case 12: cmd();		break;
+		}
+
+		cout << "\n\n1 - продолжить; 2 - выйти\n>";
+		cin >> exit; cin.ignore();
+	}
+	return 0;
+}
+
+void ddir()
+{
+	system("cls");
+	string c, d;
+	cout << "Укажите букву системного локального диска\n>";
+	getline(cin, c);
+	cout << "Укажите букву локального диска\n>";
+	getline(cin, d);
+	string command = "cd " + c + ":\\ & dir";
+	system(command.c_str());
+	command = d + ": & dir";
+	system(command.c_str());
+
+}
+
+void mkfile()
+{
+	string path = "";
+	cout << "Укажите имя файла и его расширение\n>";
+	getline(cin, path);
+	ofstream fs;
+	fs.open(path);
+	if (!fs.is_open()) cout << "Что-то пошло не так\n";
+	else fs.close();
+}
+
+void rmfile()
+{
+	string fileName = "";
+	cout << "Введите имя файла\n>";
+	getline(cin, fileName);
+	string command = "del /p " + fileName;
+	system(command.c_str());
+}
+
+void mkdir()
+{
+	string dirName = "";
+	cout << "Введите имя папки\n>";
+	getline(cin, dirName);
+	string command = "mkdir " + dirName;
+	system(command.c_str());
+}
+
+void rmdir()
+{
+	string dirName = "";
+	cout << "Введите имя папки\n>";
+	getline(cin, dirName);
+	string command = "rmdir " + dirName;
+	system(command.c_str());
+}
+
+void ren()
+{
+	string name = "", newName = "";
+	cout << "Введите имя файла\\папки для переименования\n>";
+	getline(cin, name);
+	cout << "Введите новое имя файла\\папки\n>";
+	getline(cin, newName);
+	string command = "ren " + name + " " + newName;
+	system(command.c_str());
+}
+
+void fcopy()
+{
+	string name = "", newName = "";
+	cout << "Введите имя файла для копирования\n>";
+	getline(cin, name);
+	cout << "Введите новое имя файла\n>";
+	getline(cin, newName);
+	string command = "copy " + name + " " + newName;
+	system(command.c_str());
+}
+
+void dcopy()
+{
+	string name = "", newName = "";
+	cout << "Введите имя файла для копирования\n>";
+	getline(cin, name);
+	cout << "Введите новое имя файла\n>";
+	getline(cin, newName);
+	string command = "robocopy " + name + " " + newName;
+	system(command.c_str());
+}
+
+void move()
+{
+	string name = "", newName = "";
+	cout << "Введите имя файла\\папки для переноса\n>";
+	getline(cin, name);
+	cout << "Укажите место\n>";
+	getline(cin, newName);
+	string command = "move " + name + " " + newName;
+	system(command.c_str());
+}
+
+void getSize()
+{
+	system("cls");
+	string a;
+	cout << "Укажите имя файла\\каталога\n>";
+	getline(cin, a);
+	struct stat file_stat;
+	stat(a.c_str(), &file_stat);
+	cout << file_stat.st_size << " байт\n";
+}
+
+void find()
+{
+	system("cls");
+	string name = "";
+	cout << "Введите имя для поиска\n>";
+	getline(cin, name);
+	string command = "dir /b/s " + name;
+	system(command.c_str());
+}
+
+void cmd()
+{
+	system("cls");
+	string command;
+	getline(cin, command);
+	system(command.c_str());
+}
